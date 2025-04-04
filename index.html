@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meru University Key Management System</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <h1>Meru University Key Management System</h1>
+        <div class="user-info">
+            <span id="username">Loading...</span>
+            <button id="logoutBtn" class="btn logout">Logout</button>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="search-section">
+            <input type="text" id="searchInput" placeholder="Search keys...">
+            <button id="searchButton">Search</button>
+        </div>
+
+        <div class="action-buttons">
+            <button id="addButton" class="btn add">Add New Key</button>
+            <button id="updateButton" class="btn update">Update Key</button>
+            <button id="deleteButton" class="btn delete">Delete Key</button>
+            <button id="assignButton" class="btn assign">Assign Key</button>
+            <button id="returnButton" class="btn return">Return Key</button>
+            <button id="historyButton" class="btn history">View History</button>
+        </div>
+
+        <div class="table-container">
+            <table id="keysTable">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Type</th>
+                        <th>Status</th>
+                        <th>Assigned To</th>
+                        <th>Department</th>
+                        <th>Faculty</th>
+                        <th>Building</th>
+                        <th>Room</th>
+                        <th>Last Updated</th>
+                    </tr>
+                </thead>
+                <tbody id="keysTableBody">
+                    <!-- Keys will be loaded here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Add Key Modal -->
+    <div id="addModal" class="modal">
+        <div class="modal-content">
+            <h2>Add New Key</h2>
+            <form id="addKeyForm">
+                <div class="form-group">
+                    <label for="keyName">Key Name:</label>
+                    <input type="text" id="keyName" required>
+                </div>
+                <div class="form-group">
+                    <label for="keyType">Key Type:</label>
+                    <select id="keyType" required>
+                        <option value="Physical">Physical</option>
+                        <option value="Electronic">Electronic</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="department">Department:</label>
+                    <select id="department" required>
+                        <!-- Departments will be loaded here -->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="faculty">Faculty:</label>
+                    <input type="text" id="faculty" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="building">Building:</label>
+                    <input type="text" id="building" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="room">Room Number:</label>
+                    <input type="text" id="room" required>
+                </div>
+                <div class="form-group">
+                    <label for="notes">Notes:</label>
+                    <textarea id="notes"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="status">Status:</label>
+                    <select id="status" required>
+                        <option value="Active">Active</option>
+                        <option value="Inactive">Inactive</option>
+                        <option value="Lost">Lost</option>
+                        <option value="Damaged">Damaged</option>
+                    </select>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn save">Save</button>
+                    <button type="button" class="btn cancel" onclick="closeModal('addModal')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Update Key Modal -->
+    <div id="updateModal" class="modal">
+        <div class="modal-content">
+            <h2>Update Key</h2>
+            <form id="updateKeyForm">
+                <input type="hidden" id="updateKeyId">
+                <div class="form-group">
+                    <label for="updateKeyName">Key Name:</label>
+                    <input type="text" id="updateKeyName" required>
+                </div>
+                <div class="form-group">
+                    <label for="updateKeyType">Key Type:</label>
+                    <select id="updateKeyType" required>
+                        <option value="Physical">Physical</option>
+                        <option value="Electronic">Electronic</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="updateDepartment">Department:</label>
+                    <select id="updateDepartment" required>
+                        <!-- Departments will be loaded here -->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="updateFaculty">Faculty:</label>
+                    <input type="text" id="updateFaculty" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="updateBuilding">Building:</label>
+                    <input type="text" id="updateBuilding" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="updateRoom">Room Number:</label>
+                    <input type="text" id="updateRoom" required>
+                </div>
+                <div class="form-group">
+                    <label for="updateNotes">Notes:</label>
+                    <textarea id="updateNotes"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="updateStatus">Status:</label>
+                    <select id="updateStatus" required>
+                        <option value="Active">Active</option>
+                        <option value="Inactive">Inactive</option>
+                        <option value="Lost">Lost</option>
+                        <option value="Damaged">Damaged</option>
+                        <option value="Assigned">Assigned</option>
+                        <option value="Available">Available</option>
+                    </select>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn save">Update</button>
+                    <button type="button" class="btn cancel" onclick="closeModal('updateModal')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Assign Key Modal -->
+    <div id="assignModal" class="modal">
+        <div class="modal-content">
+            <h2>Assign Key</h2>
+            <form id="assignKeyForm">
+                <input type="hidden" id="assignKeyId">
+                <div class="form-group">
+                    <label for="assignPerson">Person Name:</label>
+                    <input type="text" id="assignPerson" required>
+                </div>
+                <div class="form-group">
+                    <label for="assignDepartment">Department:</label>
+                    <select id="assignDepartment" required>
+                        <!-- Departments will be loaded here -->
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="assignFaculty">Faculty:</label>
+                    <input type="text" id="assignFaculty" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="assignNotes">Notes:</label>
+                    <textarea id="assignNotes"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn save">Assign</button>
+                    <button type="button" class="btn cancel" onclick="closeModal('assignModal')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Return Key Modal -->
+    <div id="returnModal" class="modal">
+        <div class="modal-content">
+            <h2>Return Key</h2>
+            <form id="returnKeyForm">
+                <input type="hidden" id="returnKeyId">
+                <div class="form-group">
+                    <label for="returnNotes">Return Notes:</label>
+                    <textarea id="returnNotes"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn save">Return</button>
+                    <button type="button" class="btn cancel" onclick="closeModal('returnModal')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Key History Modal -->
+    <div id="historyModal" class="modal">
+        <div class="modal-content">
+            <h2>Key History</h2>
+            <div id="historyContent">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Action</th>
+                            <th>Person</th>
+                            <th>Department</th>
+                            <th>Faculty</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyTableBody">
+                    </tbody>
+                </table>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn cancel" onclick="closeModal('historyModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html> 

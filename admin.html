@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Meru University Key Management System</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+    <div class="dashboard">
+        <header>
+            <h1>Admin Dashboard</h1>
+            <div class="user-info">
+                <span id="username">Loading...</span>
+                <button id="logoutBtn" class="btn logout">Logout</button>
+            </div>
+        </header>
+
+        <div class="dashboard-content">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Total Keys</h3>
+                    <p id="totalKeys">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Assigned Keys</h3>
+                    <p id="assignedKeys">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Available Keys</h3>
+                    <p id="availableKeys">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Lost Keys</h3>
+                    <p id="lostKeys">0</p>
+                </div>
+            </div>
+
+            <div class="actions-grid">
+                <button id="addKeyBtn" class="btn add">Add New Key</button>
+                <button id="addDepartmentBtn" class="btn update">Add Department</button>
+                <button id="generateReportBtn" class="btn report">Generate Report</button>
+                <button id="backupBtn" class="btn backup">Backup Database</button>
+                <button id="manageAdminsBtn" class="btn admin">Manage Admins</button>
+            </div>
+
+            <div class="activity-section">
+                <h2>Recent Activity</h2>
+                <div class="activity-list" id="activityList">
+                    <!-- Activity items will be loaded here -->
+                </div>
+            </div>
+
+            <div class="management-section">
+                <div class="departments-list">
+                    <h2>Departments</h2>
+                    <div id="departmentList"></div>
+                </div>
+                <div class="users-list">
+                    <h2>Users</h2>
+                    <div id="userList"></div>
+                </div>
+            </div>
+
+            <div class="admin-section">
+                <div class="section-header">
+                    <h2>Admin Users</h2>
+                    <button class="btn add" onclick="openModal('addAdminModal')">Add New Admin</button>
+                </div>
+                <div id="adminList" class="admin-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Department Modal -->
+    <div id="addDepartmentModal" class="modal">
+        <div class="modal-content">
+            <h2>Add New Department</h2>
+            <form id="addDepartmentForm">
+                <div class="form-group">
+                    <label for="deptName">Department Name</label>
+                    <input type="text" id="deptName" required>
+                </div>
+                <div class="form-group">
+                    <label for="deptFaculty">Faculty</label>
+                    <input type="text" id="deptFaculty" required>
+                </div>
+                <div class="form-group">
+                    <label for="deptBuilding">Building</label>
+                    <input type="text" id="deptBuilding" required>
+                </div>
+                <div class="form-group">
+                    <label for="deptContact">Contact Person</label>
+                    <input type="text" id="deptContact" required>
+                </div>
+                <div class="form-group">
+                    <label for="deptEmail">Contact Email</label>
+                    <input type="email" id="deptEmail" required>
+                </div>
+                <div class="form-group">
+                    <label for="deptPhone">Contact Phone</label>
+                    <input type="tel" id="deptPhone" required>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn save">Save</button>
+                    <button type="button" class="btn cancel" onclick="closeModal('addDepartmentModal')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Generate Report Modal -->
+    <div id="generateReportModal" class="modal">
+        <div class="modal-content">
+            <h2>Generate Report</h2>
+            <form id="generateReportForm">
+                <div class="form-group">
+                    <label for="reportType">Report Type</label>
+                    <select id="reportType" required>
+                        <option value="">Select Type</option>
+                        <option value="all">All Keys</option>
+                        <option value="assigned">Assigned Keys</option>
+                        <option value="available">Available Keys</option>
+                        <option value="department">By Department</option>
+                        <option value="date">By Date Range</option>
+                    </select>
+                </div>
+                <div class="form-group" id="departmentSelectGroup" style="display: none;">
+                    <label for="reportDepartment">Department</label>
+                    <select id="reportDepartment">
+                        <!-- Departments will be loaded here -->
+                    </select>
+                </div>
+                <div class="form-group" id="dateRangeGroup" style="display: none;">
+                    <label for="startDate">Start Date</label>
+                    <input type="date" id="startDate">
+                    <label for="endDate">End Date</label>
+                    <input type="date" id="endDate">
+                </div>
+                <div class="form-group">
+                    <label for="reportFormat">Format</label>
+                    <select id="reportFormat" required>
+                        <option value="pdf">PDF</option>
+                        <option value="excel">Excel</option>
+                        <option value="csv">CSV</option>
+                    </select>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn generate">Generate</button>
+                    <button type="button" class="btn cancel" onclick="closeModal('generateReportModal')">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Admin Modal -->
+    <div id="addAdminModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('addAdminModal')">&times;</span>
+            <h2>Add New Admin</h2>
+            <form id="addAdminForm">
+                <div class="form-group">
+                    <label for="adminUsername">Username</label>
+                    <input type="text" id="adminUsername" required>
+                </div>
+                <div class="form-group">
+                    <label for="adminEmail">Email</label>
+                    <input type="email" id="adminEmail" required>
+                </div>
+                <div class="form-group">
+                    <label for="adminPassword">Password</label>
+                    <input type="password" id="adminPassword" required>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn cancel" onclick="closeModal('addAdminModal')">Cancel</button>
+                    <button type="submit" class="btn save">Create Admin</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="admin.js"></script>
+</body>
+</html> 
