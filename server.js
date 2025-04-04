@@ -20,11 +20,13 @@ app.use(express.static(path.join(__dirname, '.'))); // Serve files from the curr
 
 // Database setup
 const dbPath = process.env.DATABASE_URL || 'keys.db';
+console.log('Database path:', dbPath);
 const db = new sqlite3.Database(dbPath, (err) => {
     if (err) {
         console.error('Error opening database:', err);
     } else {
         console.log('Connected to the SQLite database.');
+        console.log('Database file exists:', fs.existsSync(dbPath));
         createTables();
     }
 });
@@ -113,6 +115,7 @@ function createTables() {
                         console.error('Error checking for test user:', err);
                     } else if (row) {
                         console.log('Test user already exists in database');
+                        console.log('Test user details:', row);
                     } else {
                         console.log('Test user not found, proceeding with seeding');
                         seedDefaultAdmin();
