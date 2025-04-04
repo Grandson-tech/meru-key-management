@@ -106,7 +106,7 @@ function createTables() {
                 console.error('Error creating users table:', err);
             } else {
                 console.log('Users table created successfully');
-                // Seed default admin user and test user
+                // Seed both admin and test user
                 seedDefaultAdmin();
                 seedTestUser();
             }
