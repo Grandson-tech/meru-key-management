@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: meru-key-management
+    env: node
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: JWT_SECRET
+        value: meru-key-management-secret-2024
+      - key: PORT
+        value: 10000 
