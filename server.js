@@ -631,12 +631,17 @@ const isAdmin = (req, res, next) => {
 
 // Debug endpoint to check current users
 app.get('/api/debug/users', (req, res) => {
+    console.log('Checking database connection...');
     db.all('SELECT id, username, email, role FROM users', [], (err, rows) => {
         if (err) {
             console.error('Error fetching users:', err);
-            return res.status(500).json({ message: 'Error fetching users' });
+            return res.status(500).json({ message: 'Error fetching users', error: err.message });
         }
-        console.log('Current users:', rows);
+        console.log('Database connection successful');
+        console.log('Current users in database:', rows);
+        if (rows.length === 0) {
+            console.log('No users found in database');
+        }
         res.json(rows);
     });
 });
@@ -831,6 +836,28 @@ app.delete('/api/admin/users/:id', authenticateToken, (req, res) => {
             return res.status(404).json({ message: 'Admin user not found' });
         }
         res.json({ message: 'Admin user deleted successfully' });
+    });
+});
+
+// Debug endpoint to check database connection
+app.get('/api/debug/db-status', (req, res) => {
+    console.log('Checking database status...');
+    db.get('SELECT COUNT(*) as count FROM users', [], (err, row) => {
+        if (err) {
+            console.error('Database connection error:', err);
+            return res.status(500).json({ 
+                status: 'error', 
+                message: 'Database connection error',
+                error: err.message 
+            });
+        }
+        console.log('Database connection successful');
+        console.log('Number of users in database:', row.count);
+        res.json({ 
+            status: 'success',
+            message: 'Database connection successful',
+            userCount: row.count
+        });
     });
 });
 
