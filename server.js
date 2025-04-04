@@ -106,8 +106,9 @@ function createTables() {
                 console.error('Error creating users table:', err);
             } else {
                 console.log('Users table created successfully');
-                // Seed default admin user
+                // Seed default admin user and test user
                 seedDefaultAdmin();
+                seedTestUser();
             }
         });
     });
@@ -272,8 +273,8 @@ function seedDefaultAdmin() {
     const defaultAdmin = {
         username: 'admin',
         email: 'admin@meru.ac.ke',
-        password: 'admin123', // In production, use a secure password
-        department_id: 1, // Assuming department_id 1 exists
+        password: 'admin123', // This will be the default password
+        department_id: 1,
         role: 'admin'
     };
 
@@ -285,20 +286,84 @@ function seedDefaultAdmin() {
         }
 
         if (!row) {
-            // Insert default admin user
-            db.run(
-                'INSERT INTO users (username, email, password, department_id, role) VALUES (?, ?, ?, ?, ?)',
-                [defaultAdmin.username, defaultAdmin.email, defaultAdmin.password, defaultAdmin.department_id, defaultAdmin.role],
-                (err) => {
-                    if (err) {
-                        console.error('Error seeding admin user:', err);
-                    } else {
-                        console.log('Default admin user seeded successfully');
-                    }
+            // Hash the password
+            bcrypt.hash(defaultAdmin.password, 10, (err, hash) => {
+                if (err) {
+                    console.error('Error hashing password:', err);
+                    return;
                 }
-            );
+
+                // Insert default admin user
+                db.run(
+                    'INSERT INTO users (username, email, password, department_id, role) VALUES (?, ?, ?, ?, ?)',
+                    [defaultAdmin.username, defaultAdmin.email, hash, defaultAdmin.department_id, defaultAdmin.role],
+                    (err) => {
+                        if (err) {
+                            console.error('Error seeding admin user:', err);
+                        } else {
+                            console.log('Default admin user seeded successfully');
+                            console.log('Default admin credentials:');
+                            console.log('Username: admin');
+                            console.log('Password: admin123');
+                        }
+                    }
+                );
+            });
         } else {
             console.log('Admin user already exists');
+            console.log('Admin credentials:');
+            console.log('Username: admin');
+            console.log('Password: admin123');
+        }
+    });
+}
+
+// Function to seed test user
+function seedTestUser() {
+    const testUser = {
+        username: 'testuser',
+        email: 'test@meru.ac.ke',
+        password: 'test123',
+        department_id: 1,
+        role: 'user'
+    };
+
+    // Check if test user already exists
+    db.get('SELECT * FROM users WHERE username = ?', [testUser.username], (err, row) => {
+        if (err) {
+            console.error('Error checking for test user:', err);
+            return;
+        }
+
+        if (!row) {
+            // Hash the password
+            bcrypt.hash(testUser.password, 10, (err, hash) => {
+                if (err) {
+                    console.error('Error hashing password:', err);
+                    return;
+                }
+
+                // Insert test user
+                db.run(
+                    'INSERT INTO users (username, email, password, department_id, role) VALUES (?, ?, ?, ?, ?)',
+                    [testUser.username, testUser.email, hash, testUser.department_id, testUser.role],
+                    (err) => {
+                        if (err) {
+                            console.error('Error seeding test user:', err);
+                        } else {
+                            console.log('Test user seeded successfully');
+                            console.log('Test user credentials:');
+                            console.log('Username: testuser');
+                            console.log('Password: test123');
+                        }
+                    }
+                );
+            });
+        } else {
+            console.log('Test user already exists');
+            console.log('Test user credentials:');
+            console.log('Username: testuser');
+            console.log('Password: test123');
         }
     });
 }
