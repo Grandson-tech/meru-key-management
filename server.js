@@ -30,6 +30,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
 });
 
 function createTables() {
+    console.log('Starting database initialization...');
     db.serialize(() => {
         // Create departments table if it doesn't exist
         db.run(`CREATE TABLE IF NOT EXISTS departments (
@@ -106,9 +107,18 @@ function createTables() {
                 console.error('Error creating users table:', err);
             } else {
                 console.log('Users table created successfully');
-                // Seed both admin and test user
-                seedDefaultAdmin();
-                seedTestUser();
+                // Check if test user exists before seeding
+                db.get('SELECT * FROM users WHERE username = ?', ['testuser'], (err, row) => {
+                    if (err) {
+                        console.error('Error checking for test user:', err);
+                    } else if (row) {
+                        console.log('Test user already exists in database');
+                    } else {
+                        console.log('Test user not found, proceeding with seeding');
+                        seedDefaultAdmin();
+                        seedTestUser();
+                    }
+                });
             }
         });
     });
@@ -320,6 +330,7 @@ function seedDefaultAdmin() {
 
 // Function to seed test user
 function seedTestUser() {
+    console.log('Starting test user seeding...');
     const testUser = {
         username: 'testuser',
         email: 'test@meru.ac.ke',
@@ -336,6 +347,7 @@ function seedTestUser() {
         }
 
         if (!row) {
+            console.log('Test user not found, creating new test user...');
             // Hash the password
             bcrypt.hash(testUser.password, 10, (err, hash) => {
                 if (err) {
@@ -360,7 +372,7 @@ function seedTestUser() {
                 );
             });
         } else {
-            console.log('Test user already exists');
+            console.log('Test user already exists in database');
             console.log('Test user credentials:');
             console.log('Username: testuser');
             console.log('Password: test123');
