@@ -1,26 +1,30 @@
 const sqlite3 = require('sqlite3').verbose();
 const bcrypt = require('bcrypt');
 const fs = require('fs');
+const path = require('path');
 
-// Database setup
-const dbPath = process.env.DATABASE_URL || 'keys.db';
-console.log('Database path:', dbPath);
+// Database setup - use Render's persistent volume path
+const dbPath = process.env.DATABASE_URL || path.join(process.cwd(), 'data', 'keys.db');
+const dataDir = path.dirname(dbPath);
 
-// Check if database file exists
-if (!fs.existsSync(dbPath)) {
-    console.log('Database file does not exist, creating new database...');
-    const db = new sqlite3.Database(dbPath, (err) => {
-        if (err) {
-            console.error('Error opening database:', err);
-            process.exit(1);
-        } else {
-            console.log('Connected to the SQLite database successfully');
-            createTables(db);
-        }
-    });
-} else {
-    console.log('Database file already exists');
+// Ensure data directory exists
+if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
 }
+
+console.log('Database path:', dbPath);
+console.log('Data directory:', dataDir);
+
+// Initialize database
+const db = new sqlite3.Database(dbPath, (err) => {
+    if (err) {
+        console.error('Error opening database:', err);
+        process.exit(1);
+    } else {
+        console.log('Connected to the SQLite database successfully');
+        createTables(db);
+    }
+});
 
 function createTables(db) {
     console.log('Creating tables...');
