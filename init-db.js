@@ -391,9 +391,9 @@ async function initialize() {
         if (error.stack) {
             log(`Stack trace: ${error.stack}`, 'error');
         }
-        process.exit(1);
+        process.exit(1); // Exit with failure
     } finally {
-        // Close database connection in finally block to ensure it's always closed
+        // Close database connection after all tasks are done
         if (db) {
             try {
                 await new Promise((resolve, reject) => {
