@@ -366,29 +366,51 @@ async function seedTestUser(db) {
 
 // Main initialization function
 async function initialize() {
+    let db;
     try {
         log('Starting database initialization...');
         log(`Current working directory: ${process.cwd()}`);
         log(`Database path: ${dbPath}`);
         log(`Data directory: ${dataDir}`);
 
+        // Initialize data directory
         await initializeDataDirectory();
-        const db = await connectToDatabase();
+        
+        // Connect to database
+        db = await connectToDatabase();
+        
+        // Create tables and seed data
         await createTables(db);
         
+        // Verify all operations completed successfully
         log('Database initialization completed successfully', 'success');
         
-        // Close database connection
-        db.close((err) => {
-            if (err) {
-                log(`Error closing database: ${err.message}`, 'error');
-            } else {
-                log('Database connection closed', 'success');
-            }
-        });
     } catch (error) {
         log('Database initialization failed', 'error');
+        log(`Error details: ${error.message}`, 'error');
+        if (error.stack) {
+            log(`Stack trace: ${error.stack}`, 'error');
+        }
         process.exit(1);
+    } finally {
+        // Close database connection in finally block to ensure it's always closed
+        if (db) {
+            try {
+                await new Promise((resolve, reject) => {
+                    db.close((err) => {
+                        if (err) {
+                            log(`Error closing database: ${err.message}`, 'error');
+                            reject(err);
+                        } else {
+                            log('Database connection closed successfully', 'success');
+                            resolve();
+                        }
+                    });
+                });
+            } catch (error) {
+                log(`Error during database closure: ${error.message}`, 'error');
+            }
+        }
     }
 }
 
