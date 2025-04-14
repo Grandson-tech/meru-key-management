@@ -276,6 +276,94 @@ async function seedTestUser(db) {
     await seedUser(db, testUser, 'Test');
 }
 
+// Department seeding with verification
+async function seedDepartments(db) {
+    return withErrorHandling(async () => {
+        log('Starting department seeding...');
+        
+        const departments = [
+            {
+                name: 'Computer Science',
+                faculty: 'Science and Technology',
+                building: 'Science Block',
+                contact_person: 'Dr. John Doe',
+                contact_email: 'cs@meru.ac.ke',
+                contact_phone: '+254700000001'
+            },
+            {
+                name: 'Information Technology',
+                faculty: 'Science and Technology',
+                building: 'Science Block',
+                contact_person: 'Dr. Jane Smith',
+                contact_email: 'it@meru.ac.ke',
+                contact_phone: '+254700000002'
+            },
+            {
+                name: 'Mathematics',
+                faculty: 'Science and Technology',
+                building: 'Science Block',
+                contact_person: 'Dr. Robert Johnson',
+                contact_email: 'math@meru.ac.ke',
+                contact_phone: '+254700000003'
+            },
+            {
+                name: 'Physics',
+                faculty: 'Science and Technology',
+                building: 'Science Block',
+                contact_person: 'Dr. Sarah Williams',
+                contact_email: 'physics@meru.ac.ke',
+                contact_phone: '+254700000004'
+            }
+        ];
+
+        for (const dept of departments) {
+            // Check if department already exists
+            const existingDept = await new Promise((resolve) => {
+                db.get('SELECT * FROM departments WHERE name = ?', [dept.name], (err, row) => {
+                    resolve(row);
+                });
+            });
+
+            if (existingDept) {
+                log(`Department ${dept.name} already exists`, 'warning');
+                continue;
+            }
+
+            // Insert department
+            await new Promise((resolve, reject) => {
+                db.run(
+                    'INSERT INTO departments (name, faculty, building, contact_person, contact_email, contact_phone) VALUES (?, ?, ?, ?, ?, ?)',
+                    [dept.name, dept.faculty, dept.building, dept.contact_person, dept.contact_email, dept.contact_phone],
+                    (err) => {
+                        if (err) reject(err);
+                        else resolve();
+                    }
+                );
+            });
+            log(`Department ${dept.name} inserted successfully`, 'success');
+
+            // Verify department creation
+            const createdDept = await new Promise((resolve) => {
+                db.get('SELECT * FROM departments WHERE name = ?', [dept.name], (err, row) => {
+                    resolve(row);
+                });
+            });
+
+            if (!createdDept) {
+                throw new Error(`Department ${dept.name} not found after creation`);
+            }
+        }
+
+        // Verify total departments
+        const totalDepts = await new Promise((resolve) => {
+            db.get('SELECT COUNT(*) as count FROM departments', (err, row) => {
+                resolve(row ? row.count : 0);
+            });
+        });
+        log(`Total departments after seeding: ${totalDepts}`, 'success');
+    }, 'Failed to seed departments');
+}
+
 // Main initialization function
 async function initialize() {
     try {
