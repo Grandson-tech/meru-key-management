@@ -1,0 +1,21 @@
+// Import partials from `_sass`
+@import
+  "variables",
+  "base",
+  "layout",
+  "syntax-highlighting"
+;
+
+// Add your custom styles below
+body {
+  font-family: Arial, sans-serif;
+  line-height: 1.6;
+  color: #333;
+  background-color: #fff;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+} 
