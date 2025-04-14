@@ -7,72 +7,103 @@ const path = require('path');
 const dbPath = process.env.DATABASE_URL || path.join(process.cwd(), 'data', 'keys.db');
 const dataDir = path.dirname(dbPath);
 
-// Enhanced logging function
+// Enhanced logging function with colors and levels
 function log(message, level = 'info') {
     const timestamp = new Date().toISOString();
-    const logMessage = `[${timestamp}] [${level.toUpperCase()}] ${message}`;
+    const colors = {
+        info: '\x1b[36m',    // Cyan
+        success: '\x1b[32m', // Green
+        warning: '\x1b[33m', // Yellow
+        error: '\x1b[31m',   // Red
+        reset: '\x1b[0m'     // Reset
+    };
+    const color = colors[level] || colors.info;
+    const logMessage = `${color}[${timestamp}] [${level.toUpperCase()}] ${message}${colors.reset}`;
     console.log(logMessage);
 }
 
-// Error handling wrapper
+// Error handling wrapper with detailed error information
 async function withErrorHandling(operation, errorMessage) {
     try {
         return await operation();
     } catch (error) {
         log(`${errorMessage}: ${error.message}`, 'error');
         log(`Stack trace: ${error.stack}`, 'error');
+        if (error.code) {
+            log(`Error code: ${error.code}`, 'error');
+        }
+        if (error.errno) {
+            log(`Error number: ${error.errno}`, 'error');
+        }
         throw error;
     }
 }
 
-log('Starting database initialization...');
-log(`Current working directory: ${process.cwd()}`);
-log(`Database path: ${dbPath}`);
-log(`Data directory: ${dataDir}`);
+// Database connection wrapper with retry logic
+async function connectToDatabase(retries = 3, delay = 1000) {
+    return withErrorHandling(async () => {
+        for (let attempt = 1; attempt <= retries; attempt++) {
+            try {
+                log(`Attempting database connection (attempt ${attempt}/${retries})...`);
+                const db = await new Promise((resolve, reject) => {
+                    const db = new sqlite3.Database(dbPath, (err) => {
+                        if (err) reject(err);
+                        else resolve(db);
+                    });
+                });
+                log('Database connection established successfully', 'success');
+                return db;
+            } catch (error) {
+                if (attempt === retries) throw error;
+                log(`Connection attempt ${attempt} failed, retrying in ${delay}ms...`, 'warning');
+                await new Promise(resolve => setTimeout(resolve, delay));
+            }
+        }
+    }, 'Failed to connect to database');
+}
 
-// Ensure data directory exists
+// Directory initialization with permission checks
 async function initializeDataDirectory() {
     return withErrorHandling(async () => {
+        log('Initializing data directory...');
+        
+        // Check if directory exists
         if (!fs.existsSync(dataDir)) {
             log('Creating data directory...');
             fs.mkdirSync(dataDir, { recursive: true });
-            log('Data directory created successfully');
+            log('Data directory created successfully', 'success');
         } else {
             log('Data directory already exists');
         }
 
-        // Check if we can write to the directory
+        // Check write permissions
         const testFile = path.join(dataDir, 'test.txt');
-        fs.writeFileSync(testFile, 'test');
-        fs.unlinkSync(testFile);
-        log('Directory is writable');
+        try {
+            fs.writeFileSync(testFile, 'test');
+            fs.unlinkSync(testFile);
+            log('Directory is writable', 'success');
+        } catch (error) {
+            log('Directory is not writable', 'error');
+            throw error;
+        }
+
+        // Check database file
+        if (fs.existsSync(dbPath)) {
+            log(`Database file exists at: ${dbPath}`);
+            try {
+                const stats = fs.statSync(dbPath);
+                log(`Database file size: ${stats.size} bytes`);
+                log(`Database file permissions: ${stats.mode.toString(8)}`);
+            } catch (error) {
+                log('Error checking database file properties', 'warning');
+            }
+        } else {
+            log('Database file does not exist yet', 'warning');
+        }
     }, 'Failed to initialize data directory');
 }
 
-// Initialize database
-async function initializeDatabase() {
-    return withErrorHandling(() => {
-        return new Promise((resolve, reject) => {
-            log('Initializing database connection...');
-            const db = new sqlite3.Database(dbPath, (err) => {
-                if (err) {
-                    log(`Error opening database: ${err.message}`, 'error');
-                    reject(err);
-                } else {
-                    log('Connected to the SQLite database successfully');
-                    resolve(db);
-                }
-            });
-
-            // Handle database errors
-            db.on('error', (err) => {
-                log(`Database error: ${err.message}`, 'error');
-            });
-        });
-    }, 'Failed to initialize database');
-}
-
-// Create tables
+// Table creation with verification
 async function createTables(db) {
     log('Starting table creation...');
     
@@ -141,83 +172,88 @@ async function createTables(db) {
     ];
 
     for (const table of tables) {
-        await withErrorHandling(() => {
-            return new Promise((resolve, reject) => {
-                log(`Creating ${table.name} table...`);
+        await withErrorHandling(async () => {
+            log(`Creating ${table.name} table...`);
+            
+            // Create table
+            await new Promise((resolve, reject) => {
                 db.run(table.sql, (err) => {
-                    if (err) {
-                        log(`Error creating ${table.name} table: ${err.message}`, 'error');
-                        reject(err);
-                    } else {
-                        log(`${table.name} table created successfully`);
-                        if (table.callback) {
-                            table.callback();
-                        }
-                        resolve();
-                    }
+                    if (err) reject(err);
+                    else resolve();
                 });
             });
+            log(`${table.name} table created successfully`, 'success');
+
+            // Verify table exists
+            const tableExists = await new Promise((resolve) => {
+                db.get(`SELECT name FROM sqlite_master WHERE type='table' AND name=?`, [table.name], (err, row) => {
+                    resolve(!!row);
+                });
+            });
+            
+            if (!tableExists) {
+                throw new Error(`Table ${table.name} was not created successfully`);
+            }
+            log(`${table.name} table verified`, 'success');
+
+            // Run callback if exists
+            if (table.callback) {
+                await table.callback();
+            }
         }, `Failed to create ${table.name} table`);
     }
 }
 
-// Seed departments
-async function seedDepartments(db) {
-    log('Starting department seeding...');
-    
-    const departments = [
-        {
-            name: "ICT Department",
-            faculty: "Science and Technology",
-            building: "Science Block",
-            contact_person: "Dr. John Mwangi",
-            contact_email: "ict@meruuniversity.ac.ke",
-            contact_phone: "0712345678"
-        },
-        {
-            name: "Library",
-            faculty: "Administration",
-            building: "Library Block",
-            contact_person: "Ms. Sarah Kamau",
-            contact_email: "library@meruuniversity.ac.ke",
-            contact_phone: "0723456789"
-        },
-        {
-            name: "Security",
-            faculty: "Administration",
-            building: "Main Gate",
-            contact_person: "Mr. James Kariuki",
-            contact_email: "security@meruuniversity.ac.ke",
-            contact_phone: "0734567890"
-        }
-    ];
-
-    for (const dept of departments) {
-        await withErrorHandling(() => {
-            return new Promise((resolve, reject) => {
-                log(`Seeding department: ${dept.name}`);
-                db.run(
-                    'INSERT OR IGNORE INTO departments (name, faculty, building, contact_person, contact_email, contact_phone) VALUES (?, ?, ?, ?, ?, ?)',
-                    [dept.name, dept.faculty, dept.building, dept.contact_person, dept.contact_email, dept.contact_phone],
-                    (err) => {
-                        if (err) {
-                            log(`Error seeding department ${dept.name}: ${err.message}`, 'error');
-                            reject(err);
-                        } else {
-                            log(`Department ${dept.name} seeded successfully`);
-                            resolve();
-                        }
-                    }
-                );
+// Enhanced user seeding with verification
+async function seedUser(db, user, role) {
+    return withErrorHandling(async () => {
+        log(`Starting ${role} user seeding...`);
+        
+        // Check if user already exists
+        const existingUser = await new Promise((resolve) => {
+            db.get('SELECT * FROM users WHERE username = ?', [user.username], (err, row) => {
+                resolve(row);
             });
-        }, `Failed to seed department ${dept.name}`);
-    }
+        });
+
+        if (existingUser) {
+            log(`${role} user already exists`, 'warning');
+            return;
+        }
+
+        // Hash password
+        const hash = await bcrypt.hash(user.password, 10);
+        log('Password hashed successfully');
+
+        // Insert user
+        await new Promise((resolve, reject) => {
+            db.run(
+                'INSERT INTO users (username, email, password, department_id, role) VALUES (?, ?, ?, ?, ?)',
+                [user.username, user.email, hash, user.department_id, user.role],
+                (err) => {
+                    if (err) reject(err);
+                    else resolve();
+                }
+            );
+        });
+        log(`${role} user inserted successfully`, 'success');
+
+        // Verify user creation
+        const createdUser = await new Promise((resolve) => {
+            db.get('SELECT * FROM users WHERE username = ?', [user.username], (err, row) => {
+                resolve(row);
+            });
+        });
+
+        if (!createdUser) {
+            throw new Error(`${role} user not found after creation`);
+        }
+        log(`${role} user verified successfully`, 'success');
+    }, `Failed to seed ${role} user`);
 }
 
 // Seed default admin
 async function seedDefaultAdmin(db) {
-    log('Starting admin user seeding...');
-    
     const defaultAdmin = {
         username: 'admin',
         email: 'admin@meru.ac.ke',
@@ -225,43 +261,11 @@ async function seedDefaultAdmin(db) {
         department_id: 1,
         role: 'admin'
     };
-
-    await withErrorHandling(async () => {
-        const hash = await bcrypt.hash(defaultAdmin.password, 10);
-        
-        return new Promise((resolve, reject) => {
-            db.run(
-                'INSERT OR IGNORE INTO users (username, email, password, department_id, role) VALUES (?, ?, ?, ?, ?)',
-                [defaultAdmin.username, defaultAdmin.email, hash, defaultAdmin.department_id, defaultAdmin.role],
-                async (err) => {
-                    if (err) {
-                        log(`Error seeding admin user: ${err.message}`, 'error');
-                        reject(err);
-                    } else {
-                        log('Admin user seeded successfully');
-                        
-                        // Verify admin user
-                        db.get('SELECT * FROM users WHERE username = ?', [defaultAdmin.username], (err, row) => {
-                            if (err) {
-                                log(`Error verifying admin user: ${err.message}`, 'error');
-                            } else if (row) {
-                                log('Admin user verified successfully');
-                            } else {
-                                log('Admin user not found after seeding', 'error');
-                            }
-                            resolve();
-                        });
-                    }
-                }
-            );
-        });
-    }, 'Failed to seed admin user');
+    await seedUser(db, defaultAdmin, 'Admin');
 }
 
 // Seed test user
 async function seedTestUser(db) {
-    log('Starting test user seeding...');
-    
     const testUser = {
         username: 'testuser',
         email: 'test@meru.ac.ke',
@@ -269,54 +273,29 @@ async function seedTestUser(db) {
         department_id: 1,
         role: 'user'
     };
-
-    await withErrorHandling(async () => {
-        const hash = await bcrypt.hash(testUser.password, 10);
-        
-        return new Promise((resolve, reject) => {
-            db.run(
-                'INSERT OR IGNORE INTO users (username, email, password, department_id, role) VALUES (?, ?, ?, ?, ?)',
-                [testUser.username, testUser.email, hash, testUser.department_id, testUser.role],
-                async (err) => {
-                    if (err) {
-                        log(`Error seeding test user: ${err.message}`, 'error');
-                        reject(err);
-                    } else {
-                        log('Test user seeded successfully');
-                        
-                        // Verify test user
-                        db.get('SELECT * FROM users WHERE username = ?', [testUser.username], (err, row) => {
-                            if (err) {
-                                log(`Error verifying test user: ${err.message}`, 'error');
-                            } else if (row) {
-                                log('Test user verified successfully');
-                            } else {
-                                log('Test user not found after seeding', 'error');
-                            }
-                            resolve();
-                        });
-                    }
-                }
-            );
-        });
-    }, 'Failed to seed test user');
+    await seedUser(db, testUser, 'Test');
 }
 
 // Main initialization function
 async function initialize() {
     try {
+        log('Starting database initialization...');
+        log(`Current working directory: ${process.cwd()}`);
+        log(`Database path: ${dbPath}`);
+        log(`Data directory: ${dataDir}`);
+
         await initializeDataDirectory();
-        const db = await initializeDatabase();
+        const db = await connectToDatabase();
         await createTables(db);
         
-        log('Database initialization completed successfully');
+        log('Database initialization completed successfully', 'success');
         
         // Close database connection
         db.close((err) => {
             if (err) {
                 log(`Error closing database: ${err.message}`, 'error');
             } else {
-                log('Database connection closed');
+                log('Database connection closed', 'success');
             }
         });
     } catch (error) {
