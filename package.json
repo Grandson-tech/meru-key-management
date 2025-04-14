@@ -4,7 +4,7 @@
   "description": "Key Management System for Meru University",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "node init-db.js && node server.js",
     "dev": "nodemon server.js"
   },
   "dependencies": {
