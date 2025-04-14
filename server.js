@@ -15,6 +15,14 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
+// Serve static files from the root directory
+app.use(express.static(path.join(__dirname)));
+
+// Serve index.html for the root route
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
 // Database setup
 const dbPath = process.env.DATABASE_URL || path.join(process.cwd(), 'data', 'keys.db');
 const dataDir = path.dirname(dbPath);
