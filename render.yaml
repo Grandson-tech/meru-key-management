@@ -3,9 +3,15 @@ services:
     name: meru-key-management
     env: node
     buildCommand: npm install
-    startCommand: node server.js
+    startCommand: mkdir -p data && node init-db.js && node server.js
     envVars:
       - key: JWT_SECRET
         value: meru-key-management-secret-2024
       - key: PORT
-        value: 10000 
+        value: 10000
+      - key: DATABASE_URL
+        value: /opt/render/project/src/data/keys.db
+    disk:
+      name: data
+      mountPath: /opt/render/project/src/data
+      sizeGB: 1
